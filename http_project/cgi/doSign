@@ -1,0 +1,184 @@
+#!/usr/bin/python3
+# -*- encoding:utf-8 -*-
+import time
+import os
+import requests
+import json
+from urllib.parse import urlencode
+
+
+class WoZaiXiaoYuanPuncher:
+    def __init__(self, item):
+        # 账号数据
+        self.data = item
+        # 登陆接口
+        self.loginUrl = "https://gw.wozaixiaoyuan.com/basicinfo/mobile/login/username"
+        # 请求头
+        self.header = {
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36 MicroMessenger/7.0.9.501 NetType/WIFI MiniProgramEnv/Windows WindowsWechat",
+            "content-type": "application/json;charset=UTF-8",
+            "Content-Length": "2",
+            "Host": "gw.wozaixiaoyuan.com",
+            "Accept-Language": "en-us,en",
+            "Accept": "application/json, text/plain, */*",
+        }
+                    # "referer": "https://gw.wozaixiaoyuan.com/h5/mobile/basicinfo/index/login/index?jwcode=1002&openId=o0-5d1oCvodRWizduaidQ9TrHEAA&unionId=oUXUs1bF-iCkdLtvMWVEcSXQD5X4"
+        # 请求体（必须有）
+        self.body = "{}"
+
+    # 登陆
+    def login(self):
+        url = self.loginUrl + "?username=" + str(self.data['username']) + "&password=" + str(self.data['password'])
+        #print("----url-----")
+        #print(url)
+        self.session = requests.session()
+        #print("----session-----")
+        #print(self.session)
+        # 登陆
+        response = self.session.post(url=url, data=self.body, headers=self.header)
+        #print("----resopnse-----")
+        #print(response)
+        res = json.loads(response.text)
+        #print("----res-----")
+        #print(res)
+        if res["code"] == 0:
+            jwsession = response.headers['JWSESSION']
+            self.setJwsession(jwsession)
+            return True
+        else:
+            return False
+
+    # 设置JWSESSION
+    def setJwsession(self, jwsession):
+        self.header['JWSESSION'] = jwsession
+
+
+    # 执行打卡
+    def doPunchIn(self):
+        self.header['Host'] = "student.wozaixiaoyuan.com"
+        self.header['Content-Type'] = "application/x-www-form-urlencoded"
+        self.header["Content-Length"] = "453"
+        self.header['refer'] = 'https://servicewechat.com/wxce6d08f781975d91/175/page-frame.html'
+        url = "https://student.wozaixiaoyuan.com/health/save.json"
+        #将陕西省西安市修改为自己的家庭地址
+        sign_data = {
+            'answers': '陕西省西安市临潼区西安工程大学',
+            'latitude': '34.3667',
+            'longitude': '109.21421',
+            'country': '中国',
+            'city': '西安市',
+            'district': '临潼区',
+            'province': '陕西省',
+            'township': '陕鼓大道',
+            'street': '东街',
+            'areacode': '610115'
+        }
+        data = urlencode(sign_data)
+        response = self.session.post(url=url, data=data, headers=self.header)
+        response = json.loads(response.text)
+        # 打卡情况
+        if response["code"] == 0:
+           # print("健康打卡成功")
+            return True
+        else:
+            #print("健康打卡失败")
+            return False
+
+    def SignCheckIn(self):
+        self.header['Host'] = "student.wozaixiaoyuan.com"
+        #self.header['refer'] = 'https://servicewechat.com/wxce6d08f781975d91/143/page-frame.html'
+        self.header['refer'] = 'https://servicewechat.com/wxce6d08f781975d91/149/page-frame.html'
+        self.header['content-type'] = 'application/x-www-form-urlencoded'
+        listUrl = "https://student.wozaixiaoyuan.com/sign/getSignMessage.json"
+        signUrl = "https://student.wozaixiaoyuan.com/sign/doSign.json"
+        Spostdata = {
+            "id": "",
+            "signId": "",
+            'latitude' : '34.3667',
+            'longitude' : '109.21421',
+            'country' : '中国',
+            'city' : '西安市',
+            'district' : '临潼区',
+            'province' : '陕西省',
+            'township' : '陕鼓大道',
+            'street' : '东街',
+            'areacode' : '610115'
+        }
+        #1. 获取签到ID
+        data = {
+            'page': '1',
+            'size': '5'
+        }
+        data = urlencode(data)
+        id_res = self.session.post(listUrl, headers=self.header, data=data).json()
+    #失败直接返回
+        if id_res and id_res['code'] == -10:
+            id_res = "失败。当前token：！"
+            return
+        #成功继续签到
+        else:
+            Spostdata["id"] = id_res['data'][0]['logId']
+            Spostdata["signId"] = id_res['data'][0]['id']
+
+        self.header['content-type'] = "application/json"
+        self.header.pop('Content-Length')
+        #spdata = urlencode(Spostdata)
+        #res = requests.post(signUrl, headers=self.header, data=spdata)
+        #response = json.loads(res.text)
+        res = self.session.post(signUrl, headers=self.header, data=json.dumps(Spostdata)).json()
+        #print(res)
+        if (res['code'] == 0):
+            #res = "晚签到成功,期待下一次成功"
+            #print(res)
+            return True
+        else:
+            #res = "晚签到失败！"
+            return False
+
+if __name__ == "__main__":
+    method = os.getenv("METHOD")
+    if(method.lower() == 'get'):
+        query_param = os.getenv("QueryParam")
+        print('------1----------')
+        print(query_param)
+    elif(method.lower() == 'post'):
+        query_param = os.getenv("QUERY_STRING")
+        pos1 = query_param.find('&')
+        pos3 = query_param.rfind('&')
+        part1 = query_param[0:pos1]
+        part2 = query_param[pos1+1:pos3]
+        part3 = query_param[pos3+1:]
+        pos = part1.find('=')
+        username = part1[pos+1:]
+        pos = part2.find('=')
+        password = part2[pos+1:]
+        pos = part3.find('=')
+        check = part3[pos+1:]
+        item = {
+            "username":"",
+            "password":""
+        }
+        item["username"] = username
+        item["password"] = password
+        wzxy = WoZaiXiaoYuanPuncher(item)
+        loginStatus = wzxy.login()  #我在校园登陆
+        SignStatus = False
+        if(check == 'h'):
+            SignStatus = wzxy.doPunchIn() #健康打卡
+        else:
+            SignStatus = wzxy.SignCheckIn()  #晚签到
+        print('<html>')
+        print('<head>')
+        print('<meta charset="utf-8">')
+        print('</head>')
+        print('<body>')
+        if(loginStatus and SignStatus):
+            print('<p>%s登陆成功<br>打卡成功</p>'%username)
+        elif(loginStatus == False):
+            print('<p>%s登陆失败<br>请注意：输入账号密码错误5次后账号将被冻结24小时</p>'%username)
+        else:
+            print('<p>%s登陆成功<br>打卡失败</p>'%username)
+        print('</body>')
+        print('</html>')
