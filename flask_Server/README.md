@@ -10,6 +10,6 @@
 
 # 参考链接
 
-Check.py打卡参考链接[https://github.com/zimin9/WoZaiXiaoYuanPuncher][https://github.com/zimin9/WoZaiXiaoYuanPuncher]
+Check.py打卡参考链接[https://github.com/zimin9/WoZaiXiaoYuanPuncher]
 
-flask网页参考链接[https://github.com/solywsh/wozaixiaoyuancheck][https://github.com/solywsh/wozaixiaoyuancheck]
+flask网页参考链接[https://github.com/solywsh/wozaixiaoyuancheck]
